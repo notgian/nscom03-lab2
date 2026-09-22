@@ -17,8 +17,8 @@ os.makedirs('rainbow_plots', exist_ok=True)
 COLOR_DATA = {
     "Red": {"hex": "#FF0000", "range": (620, 750)},
     "Orange": {"hex": "#FF7F00", "range": (590, 620)},
-    "Yellow": {"hex": "#FFFF00", "range": (570, 590)},
-    "Green": {"hex": "#00FF00", "range": (495, 570)},
+    "Yellow": {"hex": "#EAEA0E", "range": (570, 590)},
+    "Green": {"hex": "#0EED0E", "range": (495, 570)},
     "Blue": {"hex": "#0000FF", "range": (450, 495)},
     "Indigo": {"hex": "#4B0082", "range": (425, 450)},
     "Violet": {"hex": "#9400D3", "range": (380, 425)},
@@ -39,6 +39,13 @@ for name, data in COLOR_DATA.items():
         "T_fs": 1000.0 / freq_thz  # Period in femtoseconds; (1/THz in fs = 1000 / THz)
 
     })
+
+# Simple helper to get the color info by its name
+def get_color_info(name: str):
+    for c in colors_info:
+        if c["name"] == name:
+            return c
+    return None
 
 # =====================================================
 # ----- Part I: Generating Individual Color Plots -----
@@ -139,18 +146,25 @@ for c in colors_info:
 # =====================================================
 # ----- Part II: Generating Composite Signal Plots-----
 # =====================================================
+
+# ----- Combination 1: Red + Blue (2 Signals) -----
 t_fs = np.linspace(0, 5, 1000)
 fig, axs = plt.subplots(3, 1, figsize=(7, 7.5), dpi=250)
 
 # Frequencies in THz
-f_red_thz = 437.65   # ~438 THz
-f_blue_thz = 634.48  # ~634 THz
+f_red_thz = get_color_info("Red")["freq_thz"]
+f_blue_thz = get_color_info("Blue")["freq_thz"]
 
-# Convert THz frequency for fs time array: (f_thz * t_fs) / 1000
-y_red = 1.0 * np.sin(2 * np.pi * (f_red_thz / 1000.0) * t_fs + 0)
-y_blue = 1.0 * np.sin(2 * np.pi * (f_blue_thz / 1000.0) * t_fs + np.pi/2)
+# Amplitude and phase shift are always set to these values
+amplitude = 1.0
+phase_shift = 0
+
+# Red and blue sine waves
+y_red = amplitude * np.sin(2 * np.pi * f_red_thz * (t_fs / 1000) + phase_shift)
+y_blue = amplitude * np.sin(2 * np.pi * f_blue_thz * (t_fs / 1000) + phase_shift)
 y_comp1 = y_red + y_blue
 
+# Plot the composite signal
 axs[0].plot(t_fs, y_comp1, color='#8E44AD', linewidth=1.8, label=f'Composite: Red ({f_red_thz:.0f} THz) + Blue ({f_blue_thz:.0f} THz)')
 axs[0].set_title('Composite Signal 1: Combination of 2 Waveforms (Red + Blue)', fontsize=9.5, fontweight='bold')
 axs[0].set_xlabel('Time (fs)', fontsize=8)
@@ -159,10 +173,11 @@ axs[0].set_xlim(0, 5)
 axs[0].grid(True, linestyle=':', alpha=0.6)
 axs[0].legend(loc='upper right', fontsize=8)
 
-# Combination 2: Red + Green + Blue (RGB - 3 Signals)
-f_green_thz = 562.99  # ~563 THz
+# ----- Combination 2: Red + Green + Blue (RGB - 3 Signals) -----
 
-y_green = 1.0 * np.sin(2 * np.pi * (f_green_thz / 1000.0) * t_fs + np.pi/3)
+# Green sine wave
+f_green_thz = get_color_info("Green")["freq_thz"]
+y_green = amplitude * np.sin(2 * np.pi * f_green_thz * (t_fs / 1000) + phase_shift)
 y_comp2 = y_red + y_green + y_blue
 
 axs[1].plot(t_fs, y_comp2, color='#2C3E50', linewidth=1.8, label='Composite: Red + Green + Blue (RGB Primary Light)')
@@ -173,12 +188,13 @@ axs[1].set_xlim(0, 5)
 axs[1].grid(True, linestyle=':', alpha=0.6)
 axs[1].legend(loc='upper right', fontsize=8)
 
-# Combination 3: All 7 Rainbow Colors Combined (Full Spectrum)
+# ----- Combination 3: All 7 Rainbow Colors Combined (Full Spectrum) -----
 y_all = np.zeros_like(t_fs)
 for c in colors_info:
     f_thz = c["freq_thz"]
-    phi = c.get("phase", 0)  # Default to 0 if phase key isn't present
-    y_all += np.sin(2 * np.pi * (f_thz / 1000.0) * t_fs + phi)
+    amplitude = 1.0
+    phase_shift = 0
+    y_all += amplitude * np.sin(2 * np.pi * f_thz * (t_fs / 1000) + phase_shift)
 
 axs[2].plot(t_fs, y_all, color='#117A65', linewidth=1.5, label='Composite: All 7 ROYGBIV Spectral Signals')
 axs[2].set_title('Composite Signal 3: Full ROYGBIV Spectrum Waveform Superposition', fontsize=9.5, fontweight='bold')
@@ -192,23 +208,25 @@ plt.tight_layout()
 plt.savefig('rainbow_plots/composite_signals.png', dpi=300)
 plt.close(fig)
 
-# 3. Generate Frequency-Domain Light Spectrum Plot
+# ============================================================
+# ----- 3. Generate Frequency-Domain Light Spectrum Plot -----
+# ============================================================
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 6), dpi=300)
 
-# Spectrum plot (Discrete Lines)
-freqs = [c["freq_thz"] for c in colors_info]
-amps = [c.get("amplitude", 1.0) for c in colors_info]
-bar_colors = [c.get("hex") for c in colors_info]
-
 # Plot vertical spectral lines and top marker dots
-ax1.vlines(x=freqs, ymin=0, ymax=amps, colors=bar_colors, linewidth=2.5)
-ax1.plot(freqs, amps, 'o', color='black', markersize=4)
+freqs = [c["freq_thz"] for c in colors_info]
+bar_colors = [c.get("hex") for c in colors_info]
+base_amplitude = 1.0
+stagger = 0.20
 
-for c in colors_info:
-    amp = c.get("amplitude", 1.0)
+staggered_amps = [base_amplitude if i % 2 == 0 else (base_amplitude - stagger) for i in range(len(freqs))]
+ax1.vlines(x=freqs, ymin=0, ymax=staggered_amps, colors=bar_colors, linewidth=2.5)
+ax1.plot(freqs, staggered_amps, 'o', color='black', markersize=4)
+
+for i, c in enumerate(colors_info):
     ax1.text(
         c["freq_thz"],
-        amp + 0.08,
+        staggered_amps[i] + 0.02,
         f'{c["name"]}\n{c["freq_thz"]} THz',
         ha='center',
         va='bottom',
@@ -219,23 +237,14 @@ for c in colors_info:
 
 ax1.set_title('Frequency-Domain Representation: Discrete Spectral Lines (ROYGBIV)', fontsize=10, fontweight='bold')
 ax1.set_xlabel('Frequency (THz)', fontsize=8.5)
-ax1.set_ylabel('Peak Amplitude (V)', fontsize=8.5)
+ax1.set_ylabel('Peak Amplitude (V)\nNOTE: Staggered for Visibility', fontsize=8.5)
 ax1.set_xlim(380, 800)
 ax1.set_ylim(0, 1.3)
 ax1.grid(True, linestyle=':', alpha=0.6)
 
-# --- CONTINUOUS LIGHT SPECTRUM BAND (FIXED) ---
-# Define THz frequency domain directly (380 THz to 800 THz to match plot bounds)
-freq_domain = np.linspace(380, 800, 1000)
+# --- CONTINUOUS LIGHT SPECTRUM BAND) ---
 
-# Pre-convert COLOR_DATA hex values to RGB tuples for performance
-COLOR_RGB = {name: mcolors.to_rgb(data["hex"]) for name, data in COLOR_DATA.items()}
-
-# Ordered list of colors from longest wavelength (Red) to shortest wavelength (Violet)
-color_order = ["Red", "Orange", "Yellow", "Green", "Blue", "Indigo", "Violet"]
-
-spectrum_img = np.zeros((50, 1000, 3))
-
+# Helper to convert wavelength to rgb colors
 def wavelength_to_rgb(wl):
     """Calculates continuous RGB values for wavelengths from 380nm to 750nm."""
     if 380 <= wl < 440:
@@ -267,16 +276,18 @@ def wavelength_to_rgb(wl):
 
     return (r, g, b)
 
-# Loop replacement:
+# Define THz frequency domain directly (380 THz to 800 THz to match plot bounds)
+freq_domain = np.linspace(380, 800, 1000)
 spectrum_img = np.zeros((50, 1000, 3))
+
 for i, f_thz in enumerate(freq_domain):
     wl = C_THZ_NM / f_thz
     spectrum_img[:, i] = wavelength_to_rgb(wl)
 
-# Render without flipping array, matching extent directly to freq_domain bounds
+# Generate and render the light spectrum
 ax2.imshow(spectrum_img, extent=[380, 800, 0, 1], aspect='auto')
 ax2.set_yticks([])
-ax2.set_xlim(380, 800)  # Perfectly aligned with ax1
+ax2.set_xlim(380, 800)
 ax2.set_xlabel('Frequency (THz) / Visible Spectrum Band', fontsize=8.5)
 ax2.set_title('Visible Light Spectrum Map in Frequency Domain', fontsize=10, fontweight='bold')
 
