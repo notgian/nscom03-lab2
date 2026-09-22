@@ -26,36 +26,47 @@ COLOR_DATA = {
 
 # Calculate color info from the base color data as above
 # wavelength used is the midpoint of the range
-# NOTE: Period is dynamically calculated. Amplitude and Phase Shift are dynamically set to 1.0 and 0.
+# NOTE: Amplitude and Phase Shift are dynamically set to 1.0 and 0.
 colors_info = []
 for name, data in COLOR_DATA.items():
     avg_wavelength = sum(data["range"]) / 2
-    
+    freq_thz = round(C_THZ_NM / avg_wavelength, 2)
     colors_info.append({
         "name": name,
         "hex": data["hex"],
         "wavelength_nm": avg_wavelength,
-        "freq_thz": round(C_THZ_NM / avg_wavelength, 2),  # Frequency in THz
+        "freq_thz": freq_thz,  # Frequency in THz
+        "T_fs": 1000.0 / freq_thz  # Period in femtoseconds; (1/THz in fs = 1000 / THz)
+
     })
 
+# =====================================================
 # ----- Part I: Generating Individual Color Plots -----
+# =====================================================
+# Looping through each color in the color info
 for c in colors_info:
     fig, ax = plt.subplots(figsize=(6, 3.5), dpi=250)
     freq_thz = c["freq_thz"]
+    T_fs = c["T_fs"]
+    color_code = c.get("hex")
+
+    # Amplitude and phase shift are always set to these values
     amplitude = 1.0
     phase_shift = 0
     
-    # thz -> 10^12 -> femto (1/THz in fs = 1000 / THz)
-    T_fs = 1000.0 / freq_thz
-
+    # plotting the sinusodial wave
     t_fs = np.linspace(0, T_fs, 1000)
-
     y = amplitude * np.sin(2 * np.pi * freq_thz * (t_fs / 1000.0) + phase_shift)
-
-    color_code = c.get("hex")
-    ax.plot(t_fs, y, color=color_code, linewidth=2, label=f'{c["name"]} Light Signal ({c["freq_thz"]} THz)')
+    ax.plot(
+        t_fs, 
+        y, 
+        color=color_code, 
+        linewidth=2, 
+        label=f'{c["name"]} Light Signal ({c["freq_thz"]} THz)'
+    )
     
     # --- AMPLITUDE ANNOTATION ---
+    # Finding the peak in the graph and then the x and y of the point
     peak_idx = np.argmax(y)
     t_peak = t_fs[peak_idx]
     y_peak = y[peak_idx]
@@ -88,7 +99,7 @@ for c in colors_info:
     # --- PERIOD ANNOTATION ---
     y_period = -1.2
 
-    # Double-headed arrow spanning from t=0 to t=T_fs
+    # Double-headed arrow spanning the period
     ax.annotate(
         "",
         xy=(0, y_period),
@@ -100,7 +111,7 @@ for c in colors_info:
         ),
     )
 
-    # Centered label text over the arrow line
+    # Label text over the arrow line
     ax.text(
         x=T_fs / 2.0,
         y=y_period,
@@ -111,7 +122,8 @@ for c in colors_info:
         verticalalignment="center",
         bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="black", lw=0.8),
     )
-
+    
+    # The rest of the labels
     ax.set_title(f'Sinusoidal Waveform - {c["name"]} Light Signal\n(Frequency: {freq_thz} THz | Wavelength: {c["wavelength_nm"]} nm)', fontsize=10, fontweight='bold', pad=10)
     ax.set_xlabel('Time (fs)', fontsize=8.5)
     ax.set_ylabel('Amplitude (V)', fontsize=8.5)
@@ -124,9 +136,10 @@ for c in colors_info:
     plt.savefig(f'rainbow_plots/{c["name"].lower()}.png', dpi=300)
     plt.close(fig)
 
-# 2. Generate Composite Signals Plots
+# =====================================================
+# ----- Part II: Generating Composite Signal Plots-----
+# =====================================================
 t_fs = np.linspace(0, 5, 1000)
-
 fig, axs = plt.subplots(3, 1, figsize=(7, 7.5), dpi=250)
 
 # Frequencies in THz
