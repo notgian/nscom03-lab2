@@ -36,8 +36,12 @@ for name, data in COLOR_DATA.items():
         "hex": data["hex"],
         "wavelength_nm": avg_wavelength,
         "freq_thz": freq_thz,  # Frequency in THz
-        "T_fs": 1000.0 / freq_thz  # Period in femtoseconds; (1/THz in fs = 1000 / THz)
-
+        "T_fs": 1000.0 / freq_thz  # Period in femtoseconds
+        # Explanation:
+        # 1 THz = 10^12 hz; 1s = 10^15 fs
+        # Perod in s: T = 1 / f
+        # T_fs  = (1 / (f * 10^12)) * 10^15 <--- convert to fs
+        #       = 10^15 / 10^12 / f = 1000 / f_thz
     })
 
 # Simple helper to get the color info by its name
@@ -62,6 +66,13 @@ for c in colors_info:
     phase_shift = 0
     
     # plotting the sinusodial wave
+    # formuala: s(t) = A sin(2πft + ϕ)
+    # A - ampliture
+    # f - frequency
+    # t - time
+
+    # we generate our x values (the linspace) then
+    # get each corresponding y, and plot this
     t_fs = np.linspace(0, T_fs, 1000)
     y = amplitude * np.sin(2 * np.pi * freq_thz * (t_fs / 1000.0) + phase_shift)
     ax.plot(
@@ -101,6 +112,7 @@ for c in colors_info:
         bbox=dict(
             boxstyle="round,pad=0.3", fc="#FFFFE0", ec="gray", lw=0.5
         ),
+        ha='left',
     )
     
     # --- PERIOD ANNOTATION ---
@@ -146,9 +158,10 @@ for c in colors_info:
 # =====================================================
 # ----- Part II: Generating Composite Signal Plots-----
 # =====================================================
+end_lim = 20
 
 # ----- Combination 1: Red + Blue (2 Signals) -----
-t_fs = np.linspace(0, 5, 1000)
+t_fs = np.linspace(0, end_lim, 1000)
 fig, axs = plt.subplots(3, 1, figsize=(7, 7.5), dpi=250)
 
 # Frequencies in THz
@@ -165,11 +178,11 @@ y_blue = amplitude * np.sin(2 * np.pi * f_blue_thz * (t_fs / 1000) + phase_shift
 y_comp1 = y_red + y_blue
 
 # Plot the composite signal
-axs[0].plot(t_fs, y_comp1, color='#8E44AD', linewidth=1.8, label=f'Composite: Red ({f_red_thz:.0f} THz) + Blue ({f_blue_thz:.0f} THz)')
+axs[0].plot(t_fs, y_comp1, color='#8E44AD', linewidth=1.8, label=f'Composite: Red ({f_red_thz:.2f} THz) + Blue ({f_blue_thz:.2f} THz)')
 axs[0].set_title('Composite Signal 1: Combination of 2 Waveforms (Red + Blue)', fontsize=9.5, fontweight='bold')
 axs[0].set_xlabel('Time (fs)', fontsize=8)
 axs[0].set_ylabel('Amplitude (V)', fontsize=8)
-axs[0].set_xlim(0, 5)
+axs[0].set_xlim(0, end_lim)
 axs[0].grid(True, linestyle=':', alpha=0.6)
 axs[0].legend(loc='upper right', fontsize=8)
 
@@ -184,7 +197,7 @@ axs[1].plot(t_fs, y_comp2, color='#2C3E50', linewidth=1.8, label='Composite: Red
 axs[1].set_title('Composite Signal 2: Combination of 3 Waveforms (Red + Green + Blue)', fontsize=9.5, fontweight='bold')
 axs[1].set_xlabel('Time (fs)', fontsize=8)
 axs[1].set_ylabel('Amplitude (V)', fontsize=8)
-axs[1].set_xlim(0, 5)
+axs[1].set_xlim(0, end_lim)
 axs[1].grid(True, linestyle=':', alpha=0.6)
 axs[1].legend(loc='upper right', fontsize=8)
 
@@ -200,7 +213,7 @@ axs[2].plot(t_fs, y_all, color='#117A65', linewidth=1.5, label='Composite: All 7
 axs[2].set_title('Composite Signal 3: Full ROYGBIV Spectrum Waveform Superposition', fontsize=9.5, fontweight='bold')
 axs[2].set_xlabel('Time (fs)', fontsize=8.5)
 axs[2].set_ylabel('Amplitude (V)', fontsize=8)
-axs[2].set_xlim(0, 5)
+axs[2].set_xlim(0, end_lim)
 axs[2].grid(True, linestyle=':', alpha=0.6)
 axs[2].legend(loc='upper right', fontsize=8)
 
