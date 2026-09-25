@@ -226,26 +226,31 @@ plt.close(fig)
 # ============================================================
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 6), dpi=300)
 
-# Plot vertical spectral lines and top marker dots
+# Extract frequency data
 freqs = [c["freq_thz"] for c in colors_info]
 bar_colors = [c.get("hex") for c in colors_info]
 base_amplitude = 1.0
 stagger = 0.20
 
-staggered_amps = [base_amplitude if i % 2 == 0 else (base_amplitude - stagger) for i in range(len(freqs))]
+# Stagger line heights for readability
+staggered_amps = [
+    base_amplitude if i % 2 == 0 else (base_amplitude - stagger)
+    for i in range(len(freqs))
+]
+
 ax1.vlines(x=freqs, ymin=0, ymax=staggered_amps, colors=bar_colors, linewidth=2.5)
-ax1.plot(freqs, staggered_amps, 'o', color='black', markersize=4)
+ax1.plot(freqs, staggered_amps, "o", color="black", markersize=4)
 
 for i, c in enumerate(colors_info):
     ax1.text(
         c["freq_thz"],
         staggered_amps[i] + 0.02,
         f'{c["name"]}\n{c["freq_thz"]} THz',
-        ha='center',
-        va='bottom',
+        ha="center",
+        va="bottom",
         fontsize=8,
-        fontweight='bold',
-        color=c.get("hex")
+        fontweight="bold",
+        color=c.get("hex"),
     )
 
 ax1.set_title('Frequency-Domain Representation: Discrete Spectral Lines (ROYGBIV)', fontsize=10, fontweight='bold')
@@ -259,37 +264,53 @@ ax1.grid(True, linestyle=':', alpha=0.6)
 
 # Helper to convert wavelength to rgb colors
 def wavelength_to_rgb(wl):
-    """Calculates continuous RGB values for wavelengths from 380nm to 750nm."""
+    """Calculates continuous RGB values for wavelengths from 380nm to 750nm. 
+        Normalizes the values and performs linear interpolation to map the values
+        for each color respectively."""
+    # 1. Violet -> Blue (380–440 nm): Red decays linearly 1.0 -> 0.0
     if 380 <= wl < 440:
         r = -(wl - 440) / (440 - 380)
         g = 0.0
         b = 1.0
+
+    # 2. Blue -> Cyan (440–490 nm): Green grows linearly 0.0 -> 1.0
     elif 440 <= wl < 490:
         r = 0.0
         g = (wl - 440) / (490 - 440)
         b = 1.0
+
+    # 3. Cyan -> Green (490–510 nm): Blue decays linearly 1.0 -> 0.0
     elif 490 <= wl < 510:
         r = 0.0
         g = 1.0
         b = -(wl - 510) / (510 - 490)
+
+    # 4. Green -> Yellow (510–580 nm): Red grows linearly 0.0 -> 1.0
     elif 510 <= wl < 580:
         r = (wl - 510) / (580 - 510)
         g = 1.0
         b = 0.0
+
+    # 5. Yellow -> Red (580–645 nm): Green decays linearly 1.0 -> 0.0
     elif 580 <= wl < 645:
         r = 1.0
         g = -(wl - 645) / (645 - 580)
         b = 0.0
+
+    # 6. Deep Red (645–750 nm): Constant maximal Red intensity
     elif 645 <= wl <= 750:
         r = 1.0
         g = 0.0
         b = 0.0
+
+    # Non-visible spectrum (UV < 380 nm or IR > 750 nm): Constant black
     else:
         r, g, b = 0.0, 0.0, 0.0
 
-    return (r, g, b)
+    return (r , g, b)
 
-# Define THz frequency domain directly (380 THz to 800 THz to match plot bounds)
+
+# Define THz frequency domain (380 THz - 800 THz)
 freq_domain = np.linspace(380, 800, 1000)
 spectrum_img = np.zeros((50, 1000, 3))
 
